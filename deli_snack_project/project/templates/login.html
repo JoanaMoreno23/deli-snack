@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iniciar sesión · Deli-Snack</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+  .ds-login-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 28px; border-bottom: 1px solid var(--line); background: #fff;
+  }
+  .ds-login-grid {
+    max-width: 1080px; margin: 56px auto; padding: 0 24px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: stretch;
+  }
+  .ds-hero-card {
+    background: var(--pink-light); border-radius: 24px; padding: 44px;
+    display: flex; flex-direction: column; justify-content: center; text-align: center; gap: 16px;
+  }
+  .ds-hero-card h1 { color: var(--pink-dark); font-size: 1.9rem; }
+  .ds-hero-card p { color: var(--ink-soft); margin: 0; }
+  .ds-hero-skull {
+    margin: 12px auto 0; width: 220px; height: 220px; border-radius: 20px;
+    background: radial-gradient(circle at 35% 30%, #ffb703, #e91278 75%);
+    display: flex; align-items: center; justify-content: center; font-size: 5.2rem;
+  }
+  .ds-form-card { background: #fff; border-radius: 24px; border: 1px solid var(--line); padding: 44px; }
+  .ds-tabs { display: flex; border: 1.5px solid var(--line); border-radius: 999px; padding: 4px; margin-bottom: 26px; }
+  .ds-tab { flex: 1; text-align: center; padding: 10px; border-radius: 999px; font-weight: 700; font-size: 0.88rem; cursor: pointer; color: var(--ink-soft); }
+  .ds-tab.active { background: var(--pink); color: #fff; }
+  .ds-field { margin-bottom: 18px; }
+  .ds-field-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .ds-forgot { font-size: 0.8rem; color: var(--pink); font-weight: 600; }
+  .ds-signup-note { text-align: center; margin-top: 18px; font-size: 0.88rem; color: var(--ink-soft); }
+  .ds-signup-note a { color: var(--pink); font-weight: 700; }
+  @media (max-width: 780px) { .ds-login-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="ds-login-nav">
+  <a class="ds-brand" href="{{ url_for('login') }}">🩷 DELI-SNACK</a>
+  <span class="ds-btn ds-btn-sm" style="pointer-events:none;">Iniciar Sesión</span>
+</div>
+
+<div class="ds-login-grid">
+  <div class="ds-hero-card">
+    <h1>¡De vuelta a la fiesta!</h1>
+    <p>Inicia sesión para gestionar tus pedidos, piñatas personalizadas y crear tus aguinaldos favoritos.</p>
+    <div class="ds-hero-skull">💀</div>
+  </div>
+
+  <div class="ds-form-card">
+    <div class="ds-tabs">
+      <div class="ds-tab active" id="tabCliente" onclick="setTab('cliente')">Iniciar como Cliente</div>
+      <div class="ds-tab" id="tabAdmin" onclick="setTab('admin')">Iniciar como Admin</div>
+    </div>
+
+    {% if error %}<div class="ds-alert">{{ error }}</div>{% endif %}
+
+    <form method="POST" action="{{ url_for('login') }}">
+      <div class="ds-field">
+        <label class="ds-label">Correo Electrónico</label>
+        <input class="ds-input" type="email" name="correo" id="correoInput" required autofocus placeholder="ejemplo@delisnack.mx">
+      </div>
+      <div class="ds-field">
+        <div class="ds-field-head">
+          <label class="ds-label">Contraseña</label>
+          <span class="ds-forgot">¿La olvidaste?</span>
+        </div>
+        <input class="ds-input" type="password" name="password" required placeholder="••••••••••">
+      </div>
+      <button type="submit" class="ds-btn ds-btn-block">Entrar al Mundo de Sabor</button>
+    </form>
+
+    <p class="ds-signup-note">¿Nuevo por aquí? <a href="#">Regístrate gratis como Cliente</a></p>
+    <p class="ds-signup-note" style="opacity:.7">admin@delisnack.com / admin123 &nbsp;·&nbsp; cliente@delisnack.com / cliente123</p>
+  </div>
+</div>
+
+<script>
+function setTab(tab) {
+  document.getElementById('tabCliente').classList.toggle('active', tab === 'cliente');
+  document.getElementById('tabAdmin').classList.toggle('active', tab === 'admin');
+  document.getElementById('correoInput').placeholder = tab === 'admin' ? 'admin@delisnack.mx' : 'ejemplo@delisnack.mx';
+}
+</script>
+</body>
+</html>

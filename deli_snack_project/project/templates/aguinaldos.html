@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Arma tu Aguinaldo · Deli-Snack{% endblock %}
+{% block content %}
+<style>
+  .ds-agu-grid { display: grid; grid-template-columns: 2.1fr 1fr; gap: 28px; align-items: start; }
+  .ds-agu-head { margin-bottom: 22px; }
+  .ds-agu-head h1 { color: var(--pink); font-size: 1.9rem; }
+  .ds-agu-head p { color: var(--ink-soft); margin-top: 6px; }
+  .ds-filter-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .ds-filter-pill { padding: 8px 16px; border-radius: 999px; border: 1.5px solid var(--line); font-weight: 600; font-size: 0.85rem; color: var(--ink-soft); }
+  .ds-filter-pill.active { background: var(--pink); border-color: var(--pink); color: #fff; }
+  .ds-product-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .ds-product { padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+  .ds-product-img {
+    height: 110px; border-radius: 14px; margin-bottom: 6px;
+    display: flex; align-items: center; justify-content: center; font-size: 2.6rem;
+    background: linear-gradient(135deg, var(--pink-light), #fff);
+  }
+  .ds-product h4 { font-size: 0.98rem; }
+  .ds-product .gram { color: var(--ink-soft); font-size: 0.8rem; }
+  .ds-product .price { font-family: 'Baloo 2', sans-serif; font-weight: 700; color: var(--pink-dark); margin: 4px 0 8px; }
+  .ds-add-row { display: flex; align-items: center; gap: 8px; }
+  .ds-add-row input { width: 54px; padding: 8px; border-radius: 10px; border: 1.5px solid var(--line); text-align: center; }
+  .ds-add-row .ds-btn { flex: 1; }
+  .ds-cart { position: sticky; top: 90px; padding: 22px; }
+  .ds-cart h3 { margin-bottom: 14px; }
+  .ds-cart-item { display: flex; justify-content: space-between; font-size: 0.88rem; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+  .ds-cart-item .qty { color: var(--ink-soft); }
+  .ds-cart-empty { color: var(--ink-soft); font-size: 0.88rem; padding: 10px 0; }
+  .ds-cart-summary { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .ds-cart-row { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--ink-soft); margin-bottom: 6px; }
+  .ds-cart-total { display: flex; justify-content: space-between; font-family: 'Baloo 2', sans-serif; font-weight: 700; font-size: 1.3rem; color: var(--pink-dark); margin: 8px 0 16px; }
+</style>
+
+<div class="ds-agu-head">
+  <h1>Diseñador de Aguinaldo Virtual</h1>
+  <p>Selecciona tus dulces preferidos y colócalos dentro del aguinaldo festivo</p>
+</div>
+
+<div class="ds-filter-row">
+  <span class="ds-filter-pill active" data-cat="Todos">Todos</span>
+  {% for cat in lista_dulces | map(attribute='categoria') | unique %}
+  <span class="ds-filter-pill" data-cat="{{ cat }}">{{ cat }}</span>
+  {% endfor %}
+</div>
+
+<div class="ds-agu-grid">
+  <div class="ds-product-grid" id="grid">
+    {% for d in lista_dulces %}
+    <div class="ds-card ds-card-flat ds-product" data-cat="{{ d.categoria }}">
+      <div class="ds-product-img">
+        {% if d.categoria == 'Paletas' %}🍭{% elif d.categoria == 'Chicles' %}🍬{% elif d.categoria == 'Botana' %}🥜{% elif d.categoria == 'Chocolate' %}🍫{% elif d.categoria == 'Cremas' %}🍮{% elif d.categoria == 'Enchilados' %}🌶️{% else %}🍡{% endif %}
+      </div>
+      <h4>{{ d.nombre }}</h4>
+      <span class="gram">{{ d.gramaje }} por pieza</span>
+      <span class="price">${{ "%.2f"|format(d.precio) }}</span>
+      <div class="ds-add-row">
+        <input type="number" min="0" value="0" class="cantidad" data-precio="{{ d.precio }}" data-nombre="{{ d.nombre }}">
+        <button type="button" class="ds-btn ds-btn-sm" onclick="agregar(this)">+ Agregar</button>
+      </div>
+    </div>
+    {% else %}
+    <p style="color:var(--ink-soft)">No hay dulces activos todavía. Agrégalos desde el panel de admin.</p>
+    {% endfor %}
+  </div>
+
+  <div class="ds-card ds-card-flat ds-cart">
+    <h3> Mi Bolsa de Aguinaldo</h3>
+    <div id="cartItems"><p class="ds-cart-empty">Todavía no agregas dulces.</p></div>
+  <div class="ds-cart-summary">
+    <div class="ds-cart-row"><span>Dulces seleccionados</span><span id="totalPiezas">0 piezas</span></div>
+    <div class="ds-cart-total"><span>Costo Total</span><span id="totalCosto">$0.00 MXN</span></div>
+
+    <!-- Formulario POST para guardar el pedido -->
+    <form action="/guardar_aguinaldo" method="POST">
+        <input type="hidden" name="total_precio" id="input_total_precio" value="0.00">
+        <button type="submit" class="ds-btn ds-btn-block" style="background-color: #e91e63; color: white; margin-top: 10px;">
+            Agregar Aguinaldo al Carrito
+        </button>
+    </form>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.ds-filter-pill').forEach(p => {
+  p.addEventListener('click', () => {
+    document.querySelectorAll('.ds-filter-pill').forEach(x => x.classList.remove('active'));
+    p.classList.add('active');
+    const cat = p.dataset.cat;
+    document.querySelectorAll('#grid .ds-product').forEach(card => {
+      card.style.display = (cat === 'Todos' || card.dataset.cat === cat) ? '' : 'none';
+    });
+  });
+});
+
+function agregar(btn) {
+  const row = btn.closest('.ds-add-row');
+  const input = row.querySelector('.cantidad');
+  if (parseInt(input.value) < 1) input.value = 1;
+  renderCart();
+}
+document.querySelectorAll('.cantidad').forEach(el => el.addEventListener('input', renderCart));
+
+function renderCart() {
+  const items = [...document.querySelectorAll('.cantidad')].filter(el => parseInt(el.value) > 0);
+  const box = document.getElementById('cartItems');
+  if (items.length === 0) {
+    box.innerHTML = '<p class="ds-cart-empty">Todavía no agregas dulces.</p>';
+  } else {
+    box.innerHTML = items.map(el => {
+      const cant = parseInt(el.value) || 0;
+      const sub = (parseFloat(el.dataset.precio) * cant).toFixed(2);
+      return `<div class="ds-cart-item"><span>${el.dataset.nombre} <span class="qty">x${cant}</span></span><span>$${sub}</span></div>`;
+    }).join('');
+  }
+  let piezas = 0, total = 0;
+  items.forEach(el => {
+    const cant = parseInt(el.value) || 0;
+    piezas += cant;
+    total += cant * parseFloat(el.dataset.precio);
+  });
+  document.getElementById('totalPiezas').textContent = piezas + ' piezas';
+  document.getElementById('totalCosto').textContent = '$' + total.toFixed(2) + ' MXN';
+  document.getElementById('input_total_precio').value = total.toFixed(2);
+}
+</script>
+{% endblock %}

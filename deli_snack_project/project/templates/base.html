@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Deli-Snack{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<nav class="ds-nav">
+  <div class="ds-nav-inner">
+    <a class="ds-brand" href="{{ url_for('aguinaldos') }}">🩷 DELI-SNACK</a>
+    <div class="ds-nav-links">
+      <a href="{{ url_for('aguinaldos') }}">Inicio</a>
+      <a href="{{ url_for('aguinaldos') }}">Catálogo</a>
+      <a href="{{ url_for('aguinaldos') }}">Arma tu Aguinaldo</a>
+      <a href="{{ url_for('pinatas') }}">Diseña tu Piñata</a>
+      {% if session.get('rol') == 'admin' %}<a href="{{ url_for('admin') }}">Panel Admin</a>{% endif %}
+    </div>
+    <div class="ds-nav-right">
+      <span class="ds-user-pill">Hola, {{ usuario }}</span>
+      <a href="{{ url_for('logout') }}" class="ds-btn ds-btn-outline ds-btn-sm">Salir</a>
+    </div>
+  </div>
+</nav>
+
+<main class="ds-shell ds-main">
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for m in messages %}<div class="ds-alert">{{ m }}</div>{% endfor %}
+  {% endif %}
+{% endwith %}
+{% block content %}{% endblock %}
+</main>
+
+<footer class="ds-footer">
+  <div class="ds-shell">
+    <div class="ds-footer-grid">
+      <div>
+        <h4 style="color:var(--pink)">DELI-SNACK</h4>
+        <p>Llevamos el auténtico y dulce sabor de la fiesta mexicana directo a tu puerta. Piñatas artesanales y dulces tradicionales personalizados para todos tus eventos.</p>
+      </div>
+      <div>
+        <h4>Nuestros Dulces</h4>
+        <ul><li>Paletas de Chile</li><li>Mazapanes</li><li>Gomitas Ácidas</li><li>Chocolates Tradicionales</li></ul>
+      </div>
+      <div>
+        <h4>Servicios Estrella</h4>
+        <ul><li>Arma tu Aguinaldo</li><li>Diseña tu Piñata</li><li>Servicio a Eventos</li><li>Pedidos Corporativos</li></ul>
+      </div>
+      <div>
+        <h4>¡Platiquemos un rato!</h4>
+        <p>Av. Reforma 124, Ciudad de México, México<br>hola@delisnack.mx</p>
+      </div>
+    </div>
+    <div class="ds-footer-bottom">
+      <span>© 2026 DELI-SNACK S.A. de C.V. Creado con amor mexicano.</span>
+      <div class="ds-social"><span>◎</span><span>♪</span><span>✦</span></div>
+    </div>
+  </div>
+</footer>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>
