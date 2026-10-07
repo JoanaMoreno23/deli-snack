@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Pedidos Recientes · Deli-Snack Admin{% endblock %}
+
+{% block content %}
+<style>
+  /* Forzar la tipografía oficial de Deli-Snack Admin */
+  body, button, select, input, table, th, td, h1, h2, h3, p, span {
+    font-family: 'Baloo 2', 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  }
+
+  /* Ocultar botones/secciones de cliente que pertenezcan a la plantilla base */
+  .ds-pin-grid, 
+  .ds-crear-pinata, 
+  .ds-crear-aguinaldo,
+  .cliente-only {
+    display: none !important;
+  }
+
+  .ds-admin-container {
+    display: flex;
+    min-height: 100vh;
+    background-color: #faf6f0;
+  }
+
+  /* Encabezado */
+  .ds-admin-head h1 {
+    font-size: 1.8rem;
+    color: #2b2325;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .ds-admin-head p {
+    color: #8c8285;
+    font-size: 0.95rem;
+  }
+
+  /* Tabla de Pedidos */
+  .ds-card-table {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    margin-top: 15px;
+  }
+  .ds-table-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .ds-table-head h2 {
+    font-size: 1.3rem;
+    color: #2b2325;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .ds-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+  .ds-table th {
+    padding: 12px 16px;
+    color: #8c8285;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-bottom: 1px solid #f0e9e6;
+  }
+  .ds-table td {
+    padding: 16px;
+    font-size: 0.9rem;
+    color: #2b2325;
+    border-bottom: 1px solid #f8f4f2;
+    vertical-align: middle;
+  }
+
+  /* Badges de Estado */
+  .badge-estado {
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: inline-block;
+  }
+  .badge-completado {
+    background-color: #e6f9f0;
+    color: #1b9e61;
+  }
+  .badge-pendiente {
+    background-color: #fff8e6;
+    color: #d99200;
+  }
+  .badge-cancelado {
+    background-color: #ffebe9;
+    color: #d93829;
+  }
+
+  /* Selector de estado */
+  .select-estado {
+    border: 1px solid #e2d9d5;
+    border-radius: 10px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    outline: none;
+    background: #fff;
+    cursor: pointer;
+    font-family: inherit;
+  }
+</style>
+
+<div class="ds-admin-head" style="margin-bottom: 20px;">
+  <h1>Gestión de Pedidos Recientes</h1>
+  <p>Consulta, gestiona y actualiza el estado de los pedidos de la dulcería en tiempo real</p>
+</div>
+
+<div class="ds-card-table">
+  <div class="ds-table-head">
+    <h2>Pedidos de Dulces y Piñatas</h2>
+    <span style="color: #8c8285; font-size: 0.9rem;">Total: <strong>{{ pedidos | length }}</strong> pedidos registrados</span>
+  </div>
+
+  <table class="ds-table">
+    <thead>
+      <tr>
+        <th>ID Pedido</th>
+        <th>Cliente</th>
+        <th>Total</th>
+        <th>Estado Actual</th>
+        <th>Acción / Cambiar Estado</th>
+        <th>Fecha / Hora</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in pedidos %}
+      <tr>
+        <td><strong>{{ p.id_formateado if p.id_formateado is defined else ('DS-%04d' % p.id) }}</strong></td>
+        <td>{{ p.cliente if p.cliente else 'Cliente Demo' }}</td>
+        <td style="font-weight: 700; color: #e91278;">${{ "%.2f"|format(p.total if p.total else 0) }}</td>
+        <td>
+          {% if p.estado == 'Completado' %}
+            <span class="badge-estado badge-completado">Completado</span>
+          {% elif p.estado == 'Pendiente' %}
+            <span class="badge-estado badge-pendiente">Pendiente</span>
+          {% else %}
+            <span class="badge-estado badge-cancelado">{{ p.estado }}</span>
+          {% endif %}
+        </td>
+        <td>
+          <select class="select-estado" onchange="actualizarEstado({{ p.id }}, this.value)">
+            <option value="Pendiente" {% if p.estado == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+            <option value="Completado" {% if p.estado == 'Completado' %}selected{% endif %}>Completado</option>
+            <option value="Cancelado" {% if p.estado == 'Cancelado' %}selected{% endif %}>Cancelado</option>
+          </select>
+        </td>
+        <td style="color: #8c8285;">
+          {% if p.fecha and p.fecha.strftime is defined %}
+            {{ p.fecha.strftime('%Y-%m-%d %H:%M') }}
+          {% else %}
+            {{ p.fecha if p.fecha else '2026-10-06 12:00' }}
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" style="text-align: center; color: #8c8285; padding: 20px;">
+          No hay pedidos registrados por el momento.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function actualizarEstado(pedidoId, nuevoEstado) {
+  fetch('/cambiar_estado_pedido', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ id: pedidoId, estado: nuevoEstado })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      window.location.reload();
+    } else {
+      alert("Error al actualizar el estado: " + (data.error || "Desconocido"));
+    }
+  })
+  .catch(err => {
+    console.error("Error:", err);
+    alert("Ocurrió un error al actualizar el estado del pedido.");
+  });
+}
+</script>
+{% endblock %}

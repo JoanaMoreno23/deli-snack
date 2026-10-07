@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Configurar Piñatas · Deli-Snack Admin{% endblock %}
+
+{% block content %}
+<style>
+  body, button, input, select, table { font-family: 'Baloo 2', 'Poppins', sans-serif !important; }
+  .ds-grid-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; }
+  .ds-card { background: #fff; border-radius: 18px; padding: 22px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+  .ds-card h2 { font-size: 1.2rem; color: #2b2325; margin-bottom: 16px; font-weight: 700; }
+  .ds-form-group { margin-bottom: 14px; }
+  .ds-form-group label { display: block; font-size: 0.85rem; color: #8c8285; margin-bottom: 5px; font-weight: 600; }
+  .ds-input { width: 100%; padding: 10px 12px; border: 1.5px solid #f0e9e6; border-radius: 10px; font-size: 0.9rem; outline: none; box-sizing: border-box; }
+  .ds-btn-main { background: #e91278; color: #fff; border: none; border-radius: 12px; padding: 12px; width: 100%; font-weight: 700; cursor: pointer; }
+  .ds-table { width: 100%; border-collapse: collapse; text-align: left; }
+  .ds-table th { padding: 10px 14px; color: #8c8285; font-size: 0.85rem; border-bottom: 1px solid #f0e9e6; }
+  .ds-table td { padding: 14px; font-size: 0.9rem; color: #2b2325; border-bottom: 1px solid #f8f4f2; }
+  .btn-del { background: #ffebe9; color: #d93829; border: none; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-weight: 700; }
+</style>
+
+<div style="margin-bottom: 20px;">
+  <h1 style="font-size: 1.8rem; color: #2b2325;">🪅 Configurar Piñatas Artesanales</h1>
+  <p style="color: #8c8285;">Define formas, modelos y tarifas para el creador de piñatas de los clientes</p>
+</div>
+
+<div class="ds-grid-2">
+  <div class="ds-card">
+    <h2>Registrar Modelo de Piñata</h2>
+    <form action="{{ url_for('crear_pinata_base') }}" method="POST">
+      <div class="ds-form-group">
+        <label>Forma / Personaje</label>
+        <input type="text" name="forma" class="ds-input" placeholder="Ej. Estrella, Burrito, Unicornio" required>
+      </div>
+      <div class="ds-form-group">
+        <label>Tamaño</label>
+        <select name="tamano" class="ds-input">
+          <option value="Chica">Chica (50 cm)</option>
+          <option value="Mediana">Mediana (80 cm)</option>
+          <option value="Grande">Grande (1.20 m)</option>
+          <option value="Jumbo">Jumbo (1.50 m)</option>
+        </select>
+      </div>
+      <div class="ds-form-group">
+        <label>Precio Base ($ MXN)</label>
+        <input type="number" step="5" name="precio" class="ds-input" placeholder="180.00" required>
+      </div>
+      <button type="submit" class="ds-btn-main">+ Guardar Piñata Base</button>
+    </form>
+  </div>
+
+  <div class="ds-card">
+    <h2>Bases Disponibles en Sistema</h2>
+    <table class="ds-table">
+      <thead>
+        <tr>
+          <th>Forma</th>
+          <th>Tamaño</th>
+          <th>Precio Base</th>
+          <th>Estado</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pinatas %}
+        <tr>
+          <td><strong>{{ p.forma }}</strong></td>
+          <td>{{ p.tamano }}</td>
+          <td style="color:#e91278; font-weight:700;">${{ "%.2f"|format(p.precio) }}</td>
+          <td><span style="background:#e6f9f0; color:#1b9e61; padding:4px 10px; border-radius:99px; font-weight:700; font-size:0.75rem;">{{ p.estado }}</span></td>
+          <td><button class="btn-del" onclick="eliminarPinata({{ p.id }})">Eliminar</button></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="text-align:center; color:#8c8285;">No hay bases configuradas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function eliminarPinata(id) {
+  if(confirm("¿Seguro de borrar esta base de piñata?")) {
+    fetch('/eliminar_pinata/' + id, {method:'POST'}).then(() => window.location.reload());
+  }
+}
+</script>
+{% endblock %}

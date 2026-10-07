@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Clientes · Deli-Snack Admin{% endblock %}
+
+{% block content %}
+<style>
+  body, button, input, table { font-family: 'Baloo 2', 'Poppins', sans-serif !important; }
+  .ds-grid-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; }
+  .ds-card { background: #fff; border-radius: 18px; padding: 22px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+  .ds-card h2 { font-size: 1.2rem; color: #2b2325; margin-bottom: 16px; font-weight: 700; }
+  .ds-form-group { margin-bottom: 14px; }
+  .ds-form-group label { display: block; font-size: 0.85rem; color: #8c8285; margin-bottom: 5px; font-weight: 600; }
+  .ds-input { width: 100%; padding: 10px 12px; border: 1.5px solid #f0e9e6; border-radius: 10px; font-size: 0.9rem; outline: none; box-sizing: border-box; }
+  .ds-btn-main { background: #e91278; color: #fff; border: none; border-radius: 12px; padding: 12px; width: 100%; font-weight: 700; cursor: pointer; }
+  .ds-table { width: 100%; border-collapse: collapse; text-align: left; }
+  .ds-table th { padding: 10px 14px; color: #8c8285; font-size: 0.85rem; border-bottom: 1px solid #f0e9e6; }
+  .ds-table td { padding: 14px; font-size: 0.9rem; color: #2b2325; border-bottom: 1px solid #f8f4f2; }
+</style>
+
+<div style="margin-bottom: 20px;">
+  <h1 style="font-size: 1.8rem; color: #2b2325;">👥 Directorio de Clientes</h1>
+  <p style="color: #8c8285;">Gestiona la información de tus compradores registrados y clientes recurrentes</p>
+</div>
+
+<div class="ds-grid-2">
+  <div class="ds-card">
+    <h2>Registrar Nuevo Cliente</h2>
+    <form action="{{ url_for('crear_cliente') }}" method="POST">
+      <div class="ds-form-group">
+        <label>Nombre Completo</label>
+        <input type="text" name="nombre" class="ds-input" placeholder="Ej. Diana Pérez" required>
+      </div>
+      <div class="ds-form-group">
+        <label>Correo Electrónico</label>
+        <input type="email" name="email" class="ds-input" placeholder="cliente@correo.com" required>
+      </div>
+      <div class="ds-form-group">
+        <label>Teléfono de Contacto</label>
+        <input type="tel" name="telefono" class="ds-input" placeholder="618 123 4567">
+      </div>
+      <button type="submit" class="ds-btn-main">+ Guardar Cliente</button>
+    </form>
+  </div>
+
+  <div class="ds-card">
+    <h2>Clientes Registrados</h2>
+    <table class="ds-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Correo / Teléfono</th>
+          <th>Fecha Registro</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in clientes %}
+        <tr>
+          <td><strong>CLI-{{ "%03d" % c.id }}</strong></td>
+          <td><strong>{{ c.nombre }}</strong></td>
+          <td>{{ c.email }}<br><small style="color:#8c8285;">{{ c.telefono if c.telefono else 'Sin teléfono' }}</small></td>
+          <td style="color:#8c8285;">{{ c.fecha_registro.strftime('%Y-%m-%d') if c.fecha_registro else '2026-10-06' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="text-align:center; color:#8c8285;">No hay clientes registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
