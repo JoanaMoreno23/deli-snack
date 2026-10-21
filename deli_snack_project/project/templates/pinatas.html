@@ -40,13 +40,13 @@
 <div class="ds-pin-grid">
   <div class="ds-card ds-card-flat ds-preview-card">
     <div class="ds-preview-label">Vista Previa Virtual</div>
-    <div class="ds-preview-box" id="previewBox">🪅</div>
+    <div class="ds-preview-box" id="previewBox"></div>
     <div class="ds-swatches" id="swatches">
-      <div class="ds-swatch active" style="background:#e91278" data-color="🪅"></div>
-      <div class="ds-swatch" style="background:#3aa0ff" data-color="🪅"></div>
-      <div class="ds-swatch" style="background:#2e9e6b" data-color="🪅"></div>
-      <div class="ds-swatch" style="background:#d9a441" data-color="🪅"></div>
-      <div class="ds-swatch" style="background:#7b4fd8" data-color="🪅"></div>
+      <div class="ds-swatch active" style="background:#e91278" data-color=""></div>
+      <div class="ds-swatch" style="background:#3aa0ff" data-color=""></div>
+      <div class="ds-swatch" style="background:#2e9e6b" data-color=""></div>
+      <div class="ds-swatch" style="background:#d9a441" data-color=""></div>
+      <div class="ds-swatch" style="background:#7b4fd8" data-color=""></div>
     </div>
   </div>
 
@@ -56,7 +56,7 @@
       <div class="ds-choice-row" id="formaRow">
         {% for forma in bases | map(attribute='forma') | unique %}
         <div class="ds-choice{% if loop.first %} active{% endif %}" data-forma="{{ forma }}">
-          <span class="ico">{% if forma == 'Estrella' %}⭐{% elif forma == 'Payaso' %}🤡{% elif forma == 'Unicornio' %}🦄{% elif forma == 'Burro' %}🐴{% else %}🎊{% endif %}</span>
+          <span class="ico">{% if forma == 'Estrella' %}{% elif forma == 'Payaso' %}{% elif forma == 'Unicornio' %}{% elif forma == 'Burro' %}{% else %}{% endif %}</span>
           {{ forma }}
         </div>
         {% endfor %}

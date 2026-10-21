@@ -49,7 +49,7 @@
     {% for d in lista_dulces %}
     <div class="ds-card ds-card-flat ds-product" data-cat="{{ d.categoria }}">
       <div class="ds-product-img">
-        {% if d.categoria == 'Paletas' %}🍭{% elif d.categoria == 'Chicles' %}🍬{% elif d.categoria == 'Botana' %}🥜{% elif d.categoria == 'Chocolate' %}🍫{% elif d.categoria == 'Cremas' %}🍮{% elif d.categoria == 'Enchilados' %}🌶️{% else %}🍡{% endif %}
+        {% if d.categoria == 'Paletas' %}{% elif d.categoria == 'Chicles' %}{% elif d.categoria == 'Botana' %}{% elif d.categoria == 'Chocolate' %}{% elif d.categoria == 'Cremas' %}{% elif d.categoria == 'Enchilados' %}{% else %}{% endif %}
       </div>
       <h4>{{ d.nombre }}</h4>
       <span class="gram">{{ d.gramaje }} por pieza</span>

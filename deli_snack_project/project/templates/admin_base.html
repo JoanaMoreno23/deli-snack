@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Panel Admin{% endblock %} · Deli-Snack</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body class="ds-admin-body">
+{% set menu = [
+  ('admin',               '', 'Dashboard'),
+  ('pedidos_recientes',   '', 'Pedidos Recientes'),
+  ('gestion_dulces',      '', 'Gestión Dulces'),
+  ('configurar_pinatas',  '', 'Configurar Piñatas'),
+  ('aguinaldos_config',   '', 'Aguinaldos Config'),
+  ('clientes',            '', 'Clientes'),
+] %}
+<div class="ds-admin-shell">
+  <aside class="ds-sidebar">
+    <a class="ds-side-brand" href="{{ url_for('admin') }}"> DELI-SNACK <em>ADMIN</em></a>
+    <nav class="ds-side-nav">
+      {% for endpoint, icono, etiqueta in menu %}
+      <a class="ds-side-link {% if request.endpoint == endpoint %}active{% endif %}" href="{{ url_for(endpoint) }}">
+        <span class="ico">{{ icono }}</span>{{ etiqueta }}
+      </a>
+      {% endfor %}
+    </nav>
+    <div class="ds-side-foot">
+      Sesión de administrador<br>
+      <a href="{{ url_for('aguinaldos') }}">Ver tienda →</a>
+    </div>
+  </aside>
+
+  <div class="ds-admin-main">
+    {% block topbar %}
+    <div class="ds-topbar">
+      <span class="who">Hola, {{ session.get('usuario_nombre') }}</span>
+      <a href="{{ url_for('logout') }}" class="ds-btn ds-btn-outline ds-btn-sm">Salir</a>
+    </div>
+    {% endblock %}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for categoria, m in messages %}
+      <div class="ds-flash {{ categoria }}">{{ m }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>

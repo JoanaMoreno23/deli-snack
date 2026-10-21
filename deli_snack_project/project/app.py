@@ -24,6 +24,86 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 mail = Mail(app)
 
 # -------------------------------------------------------------
+# UTILIDADES DEL PANEL ADMIN
+# -------------------------------------------------------------
+DDL_ADMIN = """
+ALTER TABLE pinatas ADD COLUMN IF NOT EXISTS activo BOOLEAN NOT NULL DEFAULT TRUE;
+
+CREATE TABLE IF NOT EXISTS aguinaldos_config (
+    id_aguinaldo  SERIAL PRIMARY KEY,
+    nombre        VARCHAR(120) NOT NULL,
+    empaque       VARCHAR(120) NOT NULL,
+    num_dulces    INTEGER NOT NULL DEFAULT 1,
+    precio        NUMERIC(10,2) NOT NULL DEFAULT 0,
+    activo        BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE TABLE IF NOT EXISTS clientes (
+    id_cliente      SERIAL PRIMARY KEY,
+    nombre          VARCHAR(120) NOT NULL,
+    correo          VARCHAR(150) UNIQUE NOT NULL,
+    telefono        VARCHAR(30),
+    fecha_registro  TIMESTAMP NOT NULL DEFAULT NOW()
+);
+"""
+_tablas_listas = False
+
+
+@app.before_request
+def asegurar_tablas_admin():
+    """Crea (una sola vez por arranque) las tablas nuevas del panel admin si no existen."""
+    global _tablas_listas
+    if _tablas_listas or request.endpoint == "static":
+        return
+    try:
+        conexion = f_conectar()
+        cursor = conexion.cursor()
+        cursor.execute(DDL_ADMIN)
+        conexion.commit()
+        cursor.close()
+        conexion.close()
+        _tablas_listas = True
+    except Exception as e:
+        print(f"No se pudieron preparar las tablas del admin: {e}")
+
+
+def solo_admin():
+    """Devuelve una redirección si no hay sesión de administrador; None si todo bien."""
+    if "usuario_id" not in session:
+        return redirect(url_for("login"))
+    if session.get("rol") != "admin":
+        return redirect(url_for("aguinaldos"))
+    return None
+
+
+def consultar(sql, params=None):
+    """SELECT -> lista de tuplas."""
+    conexion = f_conectar()
+    try:
+        cursor = conexion.cursor()
+        cursor.execute(sql, params or ())
+        filas = cursor.fetchall()
+        cursor.close()
+        return filas
+    finally:
+        conexion.close()
+
+
+def ejecutar(sql, params=None):
+    """INSERT / UPDATE / DELETE con commit."""
+    conexion = f_conectar()
+    try:
+        cursor = conexion.cursor()
+        cursor.execute(sql, params or ())
+        afectadas = cursor.rowcount
+        conexion.commit()
+        cursor.close()
+        return afectadas
+    finally:
+        conexion.close()
+
+
+# -------------------------------------------------------------
 # FUNCIÓN AUXILIAR: GENERAR PDF DEL PEDIDO
 # -------------------------------------------------------------
 def generar_pdf_pedido(datos_pedido):
@@ -207,8 +287,9 @@ def logout():
 # -------------------------------------------------------------
 @app.route("/admin")
 def admin():
-    if "usuario_id" not in session:
-        return redirect(url_for("login"))
+    bloqueo = solo_admin()
+    if bloqueo:
+        return bloqueo
 
     dulces = []
     pedidos = []
@@ -218,16 +299,16 @@ def admin():
         cursor = conexion.cursor()
         
         # Consultar inventario de dulces
-        cursor.execute("SELECT id_dulce, nombre, gramaje, precio, categoria, stock FROM dulces ORDER BY id_dulce ASC;")
+        cursor.execute("SELECT id_dulce, nombre, gramaje, precio, categoria, stock FROM dulces WHERE activo = TRUE ORDER BY id_dulce ASC;")
         filas_dulces = cursor.fetchall()
         for f in filas_dulces:
             dulces.append({"id": f[0], "nombre": f[1], "gramaje": f[2], "precio": f[3], "categoria": f[4], "stock": f[5]})
             
         # Consultar pedidos
-        cursor.execute("SELECT p.id_pedido, u.nombre, p.total, p.estado, p.fecha_pedido FROM pedidos p JOIN usuarios u ON p.id_usuario = u.id_usuario ORDER BY p.fecha_pedido DESC;")
+        cursor.execute("SELECT p.id_pedido, u.nombre, p.total, p.estado, p.fecha_hora FROM pedidos p JOIN usuarios u ON p.id_usuario = u.id_usuario ORDER BY p.fecha_hora DESC;")
         filas_pedidos = cursor.fetchall()
         for p in filas_pedidos:
-            pedidos.append({"id": p[0], "cliente": p[1], "total": p[2], "estado": p[3], "fecha": p[4].strftime('%Y-%m-%d %H:%M') if p[4] else ''})
+            pedidos.append({"id": p[0], "cliente": p[1], "total": float(p[2]), "estado": (p[3] or "").lower(), "fecha": p[4].strftime('%Y-%m-%d %H:%M') if p[4] else ''})
 
         # Contar piñatas disponibles para la tarjeta de estadísticas
         cursor.execute("SELECT COUNT(*) FROM pinatas;")
@@ -275,11 +356,11 @@ def exportar_pdf():
                 u.nombre, 
                 p.total, 
                 p.estado, 
-                TO_CHAR(p.fecha_pedido, 'DD/MM/YYYY HH24:MI') as fecha_fmt 
+                TO_CHAR(p.fecha_hora, 'DD/MM/YYYY HH24:MI') as fecha_fmt 
             FROM pedidos p
             JOIN usuarios u ON p.id_usuario = u.id_usuario
-            WHERE DATE_TRUNC('month', p.fecha_pedido) = DATE_TRUNC('month', CURRENT_DATE)
-            ORDER BY p.fecha_pedido DESC;
+            WHERE DATE_TRUNC('month', p.fecha_hora) = DATE_TRUNC('month', CURRENT_DATE)
+            ORDER BY p.fecha_hora DESC;
         """)
         filas = cursor.fetchall()
         for f in filas:
@@ -503,7 +584,7 @@ def guardar_aguinaldo():
         # Insertar pedido
         query = """
             INSERT INTO pedidos (id_usuario, total, estado, fecha_hora) 
-            VALUES (%s, %s, 'Pendiente', NOW());
+            VALUES (%s, %s, 'pendiente', NOW());
         """
         cursor.execute(query, (usuario_id, total))
         
@@ -531,7 +612,7 @@ def pinatas():
     try:
         conexion = f_conectar()
         cursor = conexion.cursor()
-        cursor.execute("SELECT id_pinata, forma, tamano, precio_base FROM pinatas ORDER BY id_pinata ASC;")
+        cursor.execute("SELECT id_pinata, forma, tamano, precio_base FROM pinatas WHERE activo = TRUE ORDER BY id_pinata ASC;")
         filas = cursor.fetchall()
         for f in filas:
             bases_pinatas.append({"id": f[0], "forma": f[1], "tamano": f[2], "precio": float(f[3])})
@@ -541,6 +622,240 @@ def pinatas():
         print(f"Error en ruta /pinatas: {e}")
 
     return render_template("pinatas.html", bases=bases_pinatas, usuario=session.get("usuario_nombre"))
+
+
+# =============================================================
+# PANEL ADMIN: PEDIDOS RECIENTES
+# =============================================================
+ESTADOS_PEDIDO = ("pendiente", "completado", "cancelado")
+
+
+@app.route("/pedidos_recientes")
+def pedidos_recientes():
+    bloqueo = solo_admin()
+    if bloqueo:
+        return bloqueo
+
+    pedidos = []
+    try:
+        filas = consultar("""
+            SELECT p.id_pedido, u.nombre, p.total, p.estado, p.fecha_hora
+            FROM pedidos p
+            JOIN usuarios u ON p.id_usuario = u.id_usuario
+            ORDER BY p.fecha_hora DESC;
+        """)
+        for f in filas:
+            pedidos.append({
+                "id": f[0], "cliente": f[1], "total": float(f[2]),
+                "estado": (f[3] or "").lower(),
+                "fecha": f[4].strftime("%Y-%m-%d %H:%M") if f[4] else "",
+            })
+    except Exception as e:
+        print(f"Error en /pedidos_recientes: {e}")
+        flash("No se pudieron cargar los pedidos.", "danger")
+    return render_template("pedidos.html", pedidos=pedidos)
+
+
+@app.route("/cambiar_estado_pedido", methods=["POST"])
+def cambiar_estado_pedido():
+    if solo_admin():
+        return {"success": False, "error": "No autorizado"}, 403
+
+    datos = request.get_json(silent=True) or {}
+    estado = str(datos.get("estado", "")).lower()
+    if estado not in ESTADOS_PEDIDO:
+        return {"success": False, "error": "Estado no válido"}, 400
+    try:
+        ejecutar("UPDATE pedidos SET estado = %s WHERE id_pedido = %s;", (estado, int(datos.get("id", 0))))
+        return {"success": True}
+    except Exception as e:
+        print(f"Error en /cambiar_estado_pedido: {e}")
+        return {"success": False, "error": "Error de base de datos"}, 500
+
+
+# =============================================================
+# PANEL ADMIN: GESTIÓN DE DULCES
+# =============================================================
+@app.route("/gestion_dulces")
+def gestion_dulces():
+    bloqueo = solo_admin()
+    if bloqueo:
+        return bloqueo
+
+    dulces = []
+    try:
+        for f in consultar("SELECT id_dulce, nombre, gramaje, precio, categoria, stock FROM dulces WHERE activo = TRUE ORDER BY id_dulce DESC;"):
+            dulces.append({"id": f[0], "nombre": f[1], "gramaje": f[2] or "", "precio": float(f[3]), "categoria": f[4] or "", "stock": f[5]})
+    except Exception as e:
+        print(f"Error en /gestion_dulces: {e}")
+        flash("No se pudo cargar el inventario.", "danger")
+    return render_template("gestion_dulces.html", dulces=dulces)
+
+
+@app.route("/crear_dulce", methods=["POST"])
+def crear_dulce():
+    bloqueo = solo_admin()
+    if bloqueo:
+        return bloqueo
+    try:
+        ejecutar(
+            "INSERT INTO dulces (nombre, gramaje, precio, categoria, stock, activo) VALUES (%s, %s, %s, %s, %s, TRUE);",
+            (request.form["nombre"].strip(), request.form.get("gramaje", "").strip(),
+             float(request.form["precio"]), request.form.get("categoria", "Golosina"),
+             int(request.form.get("stock", 0))),
+        )
+        flash("Dulce agregado al inventario.", "success")
+    except Exception as e:
+        print(f"Error en /crear_dulce: {e}")
+        flash("No se pudo guardar el dulce. Revisa los datos.", "danger")
+    return redirect(url_for("gestion_dulces"))
+
+
+@app.route("/eliminar_dulce/<int:id_dulce>", methods=["POST"])
+def eliminar_dulce(id_dulce):
+    if solo_admin():
+        return {"success": False}, 403
+    try:
+        # Baja lógica: conserva el historial sin borrar la fila
+        ejecutar("UPDATE dulces SET activo = FALSE WHERE id_dulce = %s;", (id_dulce,))
+    except Exception as e:
+        print(f"Error en /eliminar_dulce: {e}")
+        return {"success": False}, 500
+    return {"success": True}
+
+
+# =============================================================
+# PANEL ADMIN: CONFIGURAR PIÑATAS
+# =============================================================
+@app.route("/configurar_pinatas")
+def configurar_pinatas():
+    bloqueo = solo_admin()
+    if bloqueo:
+        return bloqueo
+
+    pinatas = []
+    try:
+        for f in consultar("SELECT id_pinata, forma, tamano, precio_base FROM pinatas WHERE activo = TRUE ORDER BY id_pinata DESC;"):
+            pinatas.append({"id": f[0], "forma": f[1], "tamano": f[2] or "", "precio": float(f[3])})
+    except Exception as e:
+        print(f"Error en /configurar_pinatas: {e}")
+        flash("No se pudieron cargar las piñatas.", "danger")
+    return render_template("configurar_pinatas.html", pinatas=pinatas)
+
+
+@app.route("/crear_pinata_base", methods=["POST"])
+def crear_pinata_base():
+    bloqueo = solo_admin()
+    if bloqueo:
+        return bloqueo
+    try:
+        ejecutar(
+            "INSERT INTO pinatas (forma, tamano, precio_base, activo) VALUES (%s, %s, %s, TRUE);",
+            (request.form["forma"].strip(), request.form.get("tamano", "Chica (50 cm)"), float(request.form["precio"])),
+        )
+        flash("Piñata base guardada.", "success")
+    except Exception as e:
+        print(f"Error en /crear_pinata_base: {e}")
+        flash("No se pudo guardar la piñata. Revisa los datos.", "danger")
+    return redirect(url_for("configurar_pinatas"))
+
+
+@app.route("/eliminar_pinata/<int:id_pinata>", methods=["POST"])
+def eliminar_pinata(id_pinata):
+    if solo_admin():
+        return {"success": False}, 403
+    try:
+        ejecutar("UPDATE pinatas SET activo = FALSE WHERE id_pinata = %s;", (id_pinata,))
+    except Exception as e:
+        print(f"Error en /eliminar_pinata: {e}")
+        return {"success": False}, 500
+    return {"success": True}
+
+
+# =============================================================
+# PANEL ADMIN: AGUINALDOS Y PAQUETES
+# =============================================================
+@app.route("/aguinaldos_config")
+def aguinaldos_config():
+    bloqueo = solo_admin()
+    if bloqueo:
+        return bloqueo
+
+    aguinaldos = []
+    try:
+        for f in consultar("SELECT id_aguinaldo, nombre, empaque, num_dulces, precio FROM aguinaldos_config WHERE activo = TRUE ORDER BY id_aguinaldo DESC;"):
+            aguinaldos.append({"id": f[0], "nombre": f[1], "empaque": f[2], "num_dulces": f[3], "precio": float(f[4])})
+    except Exception as e:
+        print(f"Error en /aguinaldos_config: {e}")
+        flash("No se pudieron cargar los paquetes.", "danger")
+    return render_template("aguinaldos_config.html", aguinaldos=aguinaldos)
+
+
+@app.route("/crear_aguinaldo_config", methods=["POST"])
+def crear_aguinaldo_config():
+    bloqueo = solo_admin()
+    if bloqueo:
+        return bloqueo
+    try:
+        ejecutar(
+            "INSERT INTO aguinaldos_config (nombre, empaque, num_dulces, precio) VALUES (%s, %s, %s, %s);",
+            (request.form["nombre"].strip(), request.form["empaque"].strip(),
+             int(request.form["num_dulces"]), float(request.form["precio"])),
+        )
+        flash("Paquete de aguinaldo guardado.", "success")
+    except Exception as e:
+        print(f"Error en /crear_aguinaldo_config: {e}")
+        flash("No se pudo guardar el paquete. Revisa los datos.", "danger")
+    return redirect(url_for("aguinaldos_config"))
+
+
+@app.route("/eliminar_aguinaldo_config/<int:id_aguinaldo>", methods=["POST"])
+def eliminar_aguinaldo_config(id_aguinaldo):
+    if solo_admin():
+        return {"success": False}, 403
+    try:
+        ejecutar("UPDATE aguinaldos_config SET activo = FALSE WHERE id_aguinaldo = %s;", (id_aguinaldo,))
+    except Exception as e:
+        print(f"Error en /eliminar_aguinaldo_config: {e}")
+        return {"success": False}, 500
+    return {"success": True}
+
+
+# =============================================================
+# PANEL ADMIN: DIRECTORIO DE CLIENTES
+# =============================================================
+@app.route("/clientes")
+def clientes():
+    bloqueo = solo_admin()
+    if bloqueo:
+        return bloqueo
+
+    lista = []
+    try:
+        for f in consultar("SELECT id_cliente, nombre, correo, telefono, fecha_registro FROM clientes ORDER BY id_cliente DESC;"):
+            lista.append({"id": f[0], "nombre": f[1], "email": f[2], "telefono": f[3],
+                          "fecha": f[4].strftime("%Y-%m-%d") if f[4] else ""})
+    except Exception as e:
+        print(f"Error en /clientes: {e}")
+        flash("No se pudo cargar el directorio de clientes.", "danger")
+    return render_template("clientes.html", clientes=lista)
+
+
+@app.route("/crear_cliente", methods=["POST"])
+def crear_cliente():
+    bloqueo = solo_admin()
+    if bloqueo:
+        return bloqueo
+    try:
+        ejecutar(
+            "INSERT INTO clientes (nombre, correo, telefono) VALUES (%s, %s, %s);",
+            (request.form["nombre"].strip(), request.form["email"].strip().lower(), request.form.get("telefono", "").strip()),
+        )
+        flash("Cliente registrado.", "success")
+    except Exception as e:
+        print(f"Error en /crear_cliente: {e}")
+        flash("No se pudo registrar el cliente (¿ya existe ese correo?).", "danger")
+    return redirect(url_for("clientes"))
 
 
 if __name__ == "__main__":

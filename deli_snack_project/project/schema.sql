@@ -4,6 +4,8 @@
 -- las tablas y datos de prueba que usa app.py
 -- =========================================================
 
+DROP TABLE IF EXISTS clientes CASCADE;
+DROP TABLE IF EXISTS aguinaldos_config CASCADE;
 DROP TABLE IF EXISTS pedidos CASCADE;
 DROP TABLE IF EXISTS pinatas CASCADE;
 DROP TABLE IF EXISTS dulces CASCADE;
@@ -40,7 +42,8 @@ CREATE TABLE pinatas (
     id_pinata    SERIAL PRIMARY KEY,
     forma        VARCHAR(80) NOT NULL,
     tamano       VARCHAR(50),
-    precio_base  NUMERIC(10,2) NOT NULL
+    precio_base  NUMERIC(10,2) NOT NULL,
+    activo       BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 -- -----------------------------------------------------
@@ -51,7 +54,30 @@ CREATE TABLE pedidos (
     id_usuario    INTEGER NOT NULL REFERENCES usuarios(id_usuario),
     total         NUMERIC(10,2) NOT NULL DEFAULT 0,
     estado        VARCHAR(30) NOT NULL DEFAULT 'pendiente',
-   fecha_hora TIMESTAMP NOT NULL DEFAULT NOW()
+    fecha_hora    TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- -----------------------------------------------------
+-- Aguinaldos / paquetes (panel admin)
+-- -----------------------------------------------------
+CREATE TABLE aguinaldos_config (
+    id_aguinaldo  SERIAL PRIMARY KEY,
+    nombre        VARCHAR(120) NOT NULL,
+    empaque       VARCHAR(120) NOT NULL,
+    num_dulces    INTEGER NOT NULL DEFAULT 1,
+    precio        NUMERIC(10,2) NOT NULL DEFAULT 0,
+    activo        BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+-- -----------------------------------------------------
+-- Directorio de clientes (panel admin)
+-- -----------------------------------------------------
+CREATE TABLE clientes (
+    id_cliente      SERIAL PRIMARY KEY,
+    nombre          VARCHAR(120) NOT NULL,
+    correo          VARCHAR(150) UNIQUE NOT NULL,
+    telefono        VARCHAR(30),
+    fecha_registro  TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- =========================================================

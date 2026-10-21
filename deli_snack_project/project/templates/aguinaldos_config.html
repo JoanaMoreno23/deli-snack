@@ -1,0 +1,64 @@
+{% extends "admin_base.html" %}
+{% block title %}Aguinaldos Config{% endblock %}
+
+{% block content %}
+<div class="ds-page-head">
+  <h1> Configuración de Aguinaldos y Paquetes</h1>
+  <p>Configura empaques y combos para fiestas infantiles y posadas</p>
+</div>
+
+<div class="ds-two-col">
+  <div class="ds-panel ds-form-panel">
+    <h2>Nuevo Combo / Aguinaldo</h2>
+    <form action="{{ url_for('crear_aguinaldo_config') }}" method="POST">
+      <div class="ds-field">
+        <label>Nombre del Paquete</label>
+        <input type="text" name="nombre" class="ds-input" placeholder="Ej. Bolsita Navideña Escolar" required>
+      </div>
+      <div class="ds-field">
+        <label>Tipo de Empaque</label>
+        <input type="text" name="empaque" class="ds-input" placeholder="Ej. Bolsa de Personaje, Caja Celofán" required>
+      </div>
+      <div class="ds-field">
+        <label>Cantidad de Piezas de Dulce</label>
+        <input type="number" min="1" name="num_dulces" class="ds-input" placeholder="12" required>
+      </div>
+      <div class="ds-field">
+        <label>Precio Sugerido ($ MXN)</label>
+        <input type="number" step="0.50" min="0" name="precio" class="ds-input" placeholder="35.00" required>
+      </div>
+      <button type="submit" class="ds-btn-block-pink">+ Guardar Configuración</button>
+    </form>
+  </div>
+
+  <div class="ds-panel ds-list-panel">
+    <h2>Paquetes Activos</h2>
+    <div class="ds-table-scroll">
+      <table class="ds-data">
+        <thead><tr><th>Paquete</th><th>Empaque</th><th>Dulces</th><th>Precio</th><th>Acción</th></tr></thead>
+        <tbody>
+          {% for a in aguinaldos %}
+          <tr>
+            <td><strong>{{ a.nombre }}</strong></td>
+            <td>{{ a.empaque }}</td>
+            <td>{{ a.num_dulces }} pzs</td>
+            <td class="price">${{ "%.2f"|format(a.precio) }}</td>
+            <td><button class="btn-del" onclick="eliminar('{{ url_for('eliminar_aguinaldo_config', id_aguinaldo=a.id) }}', '¿Seguro de eliminar este paquete?')">Eliminar</button></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="empty">No hay combos de aguinaldos configurados.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function eliminar(url, mensaje) {
+  if (confirm(mensaje)) fetch(url, { method: "POST" }).then(() => window.location.reload());
+}
+</script>
+{% endblock %}
