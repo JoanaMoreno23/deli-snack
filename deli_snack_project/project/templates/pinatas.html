@@ -56,8 +56,8 @@
       <div class="ds-choice-row" id="formaRow">
         {% for forma in bases | map(attribute='forma') | unique %}
         <div class="ds-choice{% if loop.first %} active{% endif %}" data-forma="{{ forma }}">
-          <span class="ico">{% if forma == 'Estrella' %}{% elif forma == 'Payaso' %}{% elif forma == 'Unicornio' %}{% elif forma == 'Burro' %}{% else %}{% endif %}</span>
-          {{ forma }}
+           <span class="ico">{% if forma == 'Estrella' %}⭐{% elif forma == 'Payaso' %}🤡{% elif forma == 'Unicornio' %}🦄{% elif forma == 'Burro' %}🐴{% else %}🎊{% endif %}</span>
+   
         </div>
         {% endfor %}
       </div>
@@ -158,5 +158,32 @@ function actualizarResumen() {
 }
 
 if (bases.length) pintarTamanos();
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var EMOJI_FORMA = { "Estrella": "⭐", "Payaso": "🤡", "Unicornio": "🦄" };
+  var box = document.getElementById("previewBox");
+  var formaRow = document.getElementById("formaRow");
+  if (!box || !formaRow) return;
+
+  function emojiActual() {
+    var activo = formaRow.querySelector(".ds-choice.active");
+    return activo ? (EMOJI_FORMA[activo.dataset.forma] || "🪅") : "🪅";
+  }
+
+  function pintarEmoji() {
+    var e = emojiActual();
+    if (box.textContent.trim() !== e) box.textContent = e;
+  }
+
+  formaRow.addEventListener("click", function () { setTimeout(pintarEmoji, 0); });
+
+  new MutationObserver(pintarEmoji).observe(box, {
+    childList: true, characterData: true, subtree: true
+  });
+
+  pintarEmoji();
+});
 </script>
 {% endblock %}

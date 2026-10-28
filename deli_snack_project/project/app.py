@@ -12,6 +12,22 @@ from CPostgreSQL import f_conectar
 app = Flask(__name__)
 # Llave secreta requerida para manejar sesiones
 app.secret_key = 'deli_snack_secret_key_aiven_2026'
+EMOJIS = {
+    "cacahuate japones": "🥜",
+    "chicles bomba": "🫧",
+    "duvalin": "🍫",
+    "paleta payaso": "🍭",
+    "pulparindo": "🌶️",
+    "rielitos": "🍬",
+}
+
+@app.template_filter("emoji")
+def emoji_producto(nombre):
+    return EMOJIS.get(str(nombre).lower().strip(), "🍬")
+
+# Configuración de Flask-Mail
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+...
 
 # Configuración de Flask-Mail
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
